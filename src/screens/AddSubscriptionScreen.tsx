@@ -5,33 +5,74 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
+  Text,
+  TouchableOpacity,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { AddSubscriptionHeader } from "@/components/subscriptions/AddSubscriptionHeader";
 import { FormInput } from "@/components/subscriptions/FormInput";
 import { CategorySelector } from "@/components/subscriptions/CategorySelector";
 import { BillingCycleSelector } from "@/components/subscriptions/BillingCycleSelector";
+import { SubscriptionIconPicker } from "@/components/subscriptions/SubscriptionIconPicker";
+import { useCreateSubscription } from "@/hooks/useSubscriptions";
 
 export default function AddSubscriptionScreen() {
   const router = useRouter();
+  const createSubscription = useCreateSubscription();
+
   const [name, setName] = useState("");
   const [amount, setAmount] = useState("");
   const [category, setCategory] = useState("Entertainment");
-  const [billingCycle, setBillingCycle] = useState("Monthly");
+  const [billingCycle, setBillingCycle] = useState<
+    "daily" | "weekly" | "monthly" | "yearly"
+  >("monthly");
   const [nextBilling, setNextBilling] = useState("");
   const [description, setDescription] = useState("");
+  const [autoRenew, setAutoRenew] = useState(true);
+  const [selectedIcon, setSelectedIcon] = useState("apps");
+  const [iconColor, setIconColor] = useState("#6B7280");
+  const [showIconPicker, setShowIconPicker] = useState(false);
 
-  const handleSave = () => {
-    if (!name || !amount) {
+  const handleSave = async () => {
+    if (!name.trim() || !amount) {
       Alert.alert("Error", "Please fill in subscription name and amount");
       return;
     }
 
-    // Save logic here
-    Alert.alert("Success", "Subscription added successfully!", [
-      { text: "OK", onPress: () => router.back() },
-    ]);
+    const amountNum = parseFloat(amount);
+    if (isNaN(amountNum) || amountNum <= 0) {
+      Alert.alert("Error", "Please enter a valid amount");
+      return;
+    }
+
+    if (!nextBilling) {
+      Alert.alert("Error", "Please enter next billing date (YYYY-MM-DD)");
+      return;
+    }
+
+    try {
+      // Store icon in name like goals: "icon:iconName|actualName"
+      const nameWithIcon = `icon:${selectedIcon}|${name.trim()}`;
+
+      await createSubscription.mutateAsync({
+        name: nameWithIcon,
+        amount: amountNum,
+        billing_cycle: billingCycle,
+        next_billing_date: nextBilling,
+        category: category,
+        auto_pay: autoRenew,
+        status: "active",
+        color: iconColor,
+      });
+
+      Alert.alert("Success", "Subscription added successfully!", [
+        { text: "OK", onPress: () => router.back() },
+      ]);
+    } catch (error) {
+      Alert.alert("Error", "Failed to add subscription. Please try again.");
+    }
   };
 
   return (
@@ -47,6 +88,43 @@ export default function AddSubscriptionScreen() {
             contentContainerStyle={{ padding: 20, paddingBottom: 40 }}
             showsVerticalScrollIndicator={false}
           >
+            {/* Icon Selector */}
+            <TouchableOpacity
+              onPress={() => setShowIconPicker(true)}
+              style={{
+                alignSelf: "center",
+                marginBottom: 20,
+                alignItems: "center",
+              }}
+            >
+              <View
+                style={{
+                  width: 80,
+                  height: 80,
+                  borderRadius: 40,
+                  backgroundColor: iconColor + "20",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  marginBottom: 8,
+                }}
+              >
+                <MaterialCommunityIcons
+                  name={selectedIcon as any}
+                  size={40}
+                  color={iconColor}
+                />
+              </View>
+              <Text
+                style={{
+                  fontSize: 14,
+                  color: "#6B7280",
+                  fontWeight: "500",
+                }}
+              >
+                Tap to change icon
+              </Text>
+            </TouchableOpacity>
+
             <FormInput
               label="Subscription Name"
               value={name}
@@ -72,20 +150,32 @@ export default function AddSubscriptionScreen() {
               label="Category"
               selectedCategory={category}
               onPress={() => {
-                // Open category picker modal
-                Alert.alert("Category", "Category picker coming soon!");
+                // Cycle through categories
+                const categories = [
+                  "Entertainment",
+                  "Productivity",
+                  "Health",
+                  "Education",
+                  "Other",
+                ];
+                const currentIndex = categories.indexOf(category);
+                const nextIndex = (currentIndex + 1) % categories.length;
+                setCategory(categories[nextIndex]);
               }}
             />
 
             <BillingCycleSelector
               label="Billing Cycle"
-              selectedCycle={billingCycle}
+              selectedCycle={
+                billingCycle.charAt(0).toUpperCase() + billingCycle.slice(1)
+              }
               onPress={() => {
-                // Open billing cycle picker modal
-                Alert.alert(
-                  "Billing Cycle",
-                  "Billing cycle picker coming soon!"
-                );
+                // Cycle through billing cycles
+                const cycles: Array<"daily" | "weekly" | "monthly" | "yearly"> =
+                  ["daily", "weekly", "monthly", "yearly"];
+                const currentIndex = cycles.indexOf(billingCycle);
+                const nextIndex = (currentIndex + 1) % cycles.length;
+                setBillingCycle(cycles[nextIndex]);
               }}
             />
 
@@ -93,7 +183,7 @@ export default function AddSubscriptionScreen() {
               label="Next Billing Date"
               value={nextBilling}
               onChangeText={setNextBilling}
-              placeholder="MM/DD/YYYY"
+              placeholder="YYYY-MM-DD"
               icon="calendar-outline"
               iconColor="#3B82F6"
               iconBgColor="#DBEAFE"
@@ -110,6 +200,16 @@ export default function AddSubscriptionScreen() {
             />
           </ScrollView>
         </KeyboardAvoidingView>
+
+        <SubscriptionIconPicker
+          visible={showIconPicker}
+          selectedIcon={selectedIcon}
+          onSelect={(icon, color) => {
+            setSelectedIcon(icon);
+            setIconColor(color);
+          }}
+          onClose={() => setShowIconPicker(false)}
+        />
       </SafeAreaView>
     </View>
   );

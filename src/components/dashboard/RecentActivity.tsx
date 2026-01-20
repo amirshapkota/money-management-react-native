@@ -1,43 +1,39 @@
 import React from "react";
-import { View, Text } from "react-native";
+import { View, Text, ActivityIndicator } from "react-native";
 import {
   MaterialCommunityIcons,
   Ionicons,
   FontAwesome5,
 } from "@expo/vector-icons";
 import { styles } from "@/styles/dashboard.styles";
+import { useTransactions } from "@/hooks/useTransactions";
+import { theme } from "@/constants/theme";
 
-const TRANSACTIONS = [
-  {
-    id: "1",
-    title: "Starbucks",
-    subtitle: "Food & Drink • Today",
-    amount: -5.5,
-    icon: "coffee",
-    type: "expense",
-    color: "#1F2937",
-  },
-  {
-    id: "2",
-    title: "Freelance Work",
-    subtitle: "Income • Yesterday",
-    amount: 150.0,
-    icon: "cash",
-    type: "income",
-    color: "#10B981",
-  },
-  {
-    id: "3",
-    title: "Spotify Premium",
-    subtitle: "Subscription • Oct 24",
-    amount: -9.99,
-    icon: "spotify",
-    type: "expense",
-    color: "#9333EA",
-  },
-];
+const CATEGORY_ICONS: Record<string, { icon: string; color: string }> = {
+  food: { icon: "food", color: "#F59E0B" },
+  transport: { icon: "car", color: "#3B82F6" },
+  shopping: { icon: "cart", color: "#EC4899" },
+  entertainment: { icon: "gamepad-variant", color: "#8B5CF6" },
+  bills: { icon: "receipt", color: "#EF4444" },
+  salary: { icon: "cash", color: "#10B981" },
+  other: { icon: "cash-multiple", color: "#6B7280" },
+};
+
+const getRelativeDate = (dateString: string) => {
+  const date = new Date(dateString);
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+
+  if (date.toDateString() === today.toDateString()) return "Today";
+  if (date.toDateString() === yesterday.toDateString()) return "Yesterday";
+
+  return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+};
 
 export const RecentActivity = () => {
+  const { data: transactions, isLoading } = useTransactions(5);
+
   return (
     <View style={{ marginTop: 24 }}>
       <Text
@@ -49,34 +45,59 @@ export const RecentActivity = () => {
         Recent Activity
       </Text>
 
-      {TRANSACTIONS.map((item) => (
-        <View key={item.id} style={styles.transactionCard}>
-          <View
-            style={[
-              styles.transactionIcon,
-              { backgroundColor: item.color + "15" },
-            ]}
-          >
-            <MaterialCommunityIcons
-              name={item.icon as any}
-              size={24}
-              color={item.color}
-            />
-          </View>
-          <View style={styles.transactionInfo}>
-            <Text style={styles.transactionTitle}>{item.title}</Text>
-            <Text style={styles.transactionSubtitle}>{item.subtitle}</Text>
-          </View>
-          <Text
-            style={[
-              styles.transactionAmount,
-              item.amount > 0 ? styles.amountPositive : styles.amountNegative,
-            ]}
-          >
-            {item.amount > 0 ? "+" : ""}${Math.abs(item.amount).toFixed(2)}
+      {isLoading ? (
+        <View style={{ padding: 32, alignItems: "center" }}>
+          <ActivityIndicator size="small" color={theme.colors.primary} />
+        </View>
+      ) : transactions && transactions.length > 0 ? (
+        transactions.map((transaction: any) => {
+          const categoryConfig =
+            CATEGORY_ICONS[transaction.category.toLowerCase()] ||
+            CATEGORY_ICONS.other;
+          const isIncome = transaction.type === "income";
+          const iconColor = isIncome ? "#10B981" : categoryConfig.color;
+
+          return (
+            <View key={transaction.id} style={styles.transactionCard}>
+              <View
+                style={[
+                  styles.transactionIcon,
+                  { backgroundColor: iconColor + "15" },
+                ]}
+              >
+                <MaterialCommunityIcons
+                  name={categoryConfig.icon as any}
+                  size={24}
+                  color={iconColor}
+                />
+              </View>
+              <View style={styles.transactionInfo}>
+                <Text style={styles.transactionTitle}>
+                  {transaction.description || transaction.category}
+                </Text>
+                <Text style={styles.transactionSubtitle}>
+                  {transaction.category} •{" "}
+                  {getRelativeDate(transaction.transaction_date)}
+                </Text>
+              </View>
+              <Text
+                style={[
+                  styles.transactionAmount,
+                  isIncome ? styles.amountPositive : styles.amountNegative,
+                ]}
+              >
+                {isIncome ? "+" : "-"}${Math.abs(transaction.amount).toFixed(2)}
+              </Text>
+            </View>
+          );
+        })
+      ) : (
+        <View style={{ padding: 32, alignItems: "center" }}>
+          <Text style={{ color: theme.colors.text.secondary }}>
+            No recent transactions
           </Text>
         </View>
-      ))}
+      )}
     </View>
   );
 };

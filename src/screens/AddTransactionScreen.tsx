@@ -17,17 +17,33 @@ import { styles } from "@/styles/addTransaction.styles";
 import { TransactionTypeToggle } from "@/components/add-transaction/TransactionTypeToggle";
 import { AmountInput } from "@/components/add-transaction/AmountInput";
 import { CategorySelector } from "@/components/add-transaction/CategorySelector";
+import { CategoryPicker } from "@/components/CategoryPicker";
 import { useCreateTransaction } from "@/hooks/useTransactions";
+import { useBudgetByMonth } from "@/hooks/useBudgets";
 
 export default function AddTransactionScreen() {
   const router = useRouter();
   const createTransaction = useCreateTransaction();
 
+  // Get current month budget to fetch categories
+  const now = new Date();
+  const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
+  const { data: budget } = useBudgetByMonth(currentMonth);
+
   const [type, setType] = useState<"expense" | "income">("expense");
   const [amount, setAmount] = useState("");
-  const [category, setCategory] = useState("Food & Drink"); // Default for now
+  const [category, setCategory] = useState("Other");
+  const [showCategoryPicker, setShowCategoryPicker] = useState(false);
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]); // ISO format
   const [note, setNote] = useState("");
+
+  // Extract categories from budget
+  const budgetCategories =
+    budget?.budget_categories?.map((cat) => ({
+      name: cat.name,
+      icon: cat.icon || "folder",
+      color: cat.color || "#6B7280",
+    })) || [];
 
   const handleSave = async () => {
     if (!amount || parseFloat(amount) <= 0) {
@@ -36,6 +52,13 @@ export default function AddTransactionScreen() {
     }
 
     try {
+      console.log(`[AddTransaction] Creating transaction:`, {
+        type,
+        amount: parseFloat(amount),
+        category,
+        transaction_date: date,
+      });
+
       await createTransaction.mutateAsync({
         type,
         amount: parseFloat(amount),
@@ -45,9 +68,11 @@ export default function AddTransactionScreen() {
         currency: "USD",
       });
 
+      console.log(`[AddTransaction] Transaction created successfully`);
       Alert.alert("Success", "Transaction saved successfully");
       router.back();
     } catch (error: any) {
+      console.error(`[AddTransaction] Error:`, error);
       Alert.alert("Error", error.message || "Failed to save transaction");
     }
   };
@@ -77,9 +102,7 @@ export default function AddTransactionScreen() {
 
           <CategorySelector
             category={category}
-            onPress={() => {
-              /* Open category picker */
-            }}
+            onPress={() => setShowCategoryPicker(true)}
           />
 
           <View>
@@ -124,6 +147,15 @@ export default function AddTransactionScreen() {
           <Feather name="check-circle" size={20} color="#FFFFFF" />
         </TouchableOpacity>
       </KeyboardAvoidingView>
+
+      <CategoryPicker
+        visible={showCategoryPicker}
+        selectedCategory={category}
+        onSelect={setCategory}
+        onClose={() => setShowCategoryPicker(false)}
+        customCategories={budgetCategories}
+        showOnlyCustom={true}
+      />
     </SafeAreaView>
   );
 }

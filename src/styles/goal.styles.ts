@@ -8,22 +8,35 @@ export const styles = StyleSheet.create({
   },
   header: {
     flexDirection: "row",
-    alignItems: "center",
     justifyContent: "space-between",
+    alignItems: "center",
     paddingHorizontal: theme.spacing.l,
-    paddingTop: theme.spacing.xl, // Adjust for status bar
-    marginBottom: theme.spacing.l,
+    paddingTop: theme.spacing.l,
+    paddingBottom: theme.spacing.m,
+  },
+  headerTitleContainer: {
+    alignItems: "center",
+  },
+  headerOverline: {
+    fontSize: 10,
+    color: theme.colors.text.light,
+    fontWeight: "600",
+    letterSpacing: 1,
+    textTransform: "uppercase",
   },
   headerTitle: {
-    fontSize: theme.typography.h3.fontSize,
-    fontWeight: theme.typography.h3.fontWeight,
+    fontSize: 20,
+    fontWeight: "700",
     color: theme.colors.text.primary,
   },
-  backButton: {
-    padding: theme.spacing.s,
-  },
-  menuButton: {
-    padding: theme.spacing.s,
+  iconButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: theme.colors.surface,
+    justifyContent: "center",
+    alignItems: "center",
+    ...theme.shadows.small,
   },
   scrollContent: {
     paddingBottom: theme.spacing.xl,

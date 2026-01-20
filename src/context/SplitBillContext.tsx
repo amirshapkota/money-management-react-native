@@ -43,7 +43,7 @@ interface SplitBillContextType {
     description: string,
     amount: number,
     paidBy: string,
-    splitBetween: string[]
+    splitBetween: string[],
   ) => Promise<void>;
   getGroupBalances: (groupId: string) => Record<string, number>;
   getDebts: (groupId: string) => { from: string; to: string; amount: number }[];
@@ -56,7 +56,7 @@ interface SplitBillContextType {
 
 // --- Context ---
 const SplitBillContext = createContext<SplitBillContextType | undefined>(
-  undefined
+  undefined,
 );
 
 export const useSplitBill = () => {
@@ -138,7 +138,7 @@ export const SplitBillProvider: React.FC<{ children: React.ReactNode }> = ({
     description: string,
     amount: number,
     paidBy: string,
-    splitBetween: string[]
+    splitBetween: string[],
   ) => {
     const groupIndex = groups.findIndex((g) => g.id === groupId);
     if (groupIndex === -1) return;
@@ -171,7 +171,7 @@ export const SplitBillProvider: React.FC<{ children: React.ReactNode }> = ({
 
     const balances: Record<string, number> = {};
 
-    // Initialize 0
+    // Initialize all members to 0
     group.members.forEach((m) => (balances[m.id] = 0));
 
     group.expenses.forEach((expense) => {
@@ -181,24 +181,17 @@ export const SplitBillProvider: React.FC<{ children: React.ReactNode }> = ({
 
       if (splitCount === 0) return;
 
-      const splitAmount = amount / splitCount;
+      const sharePerPerson = amount / splitCount;
 
-      // The payer gets +amount (they paid)
-      // BUT conceptually in a balance sheet:
-      // Payer PAID X. Their "balance" increases by X (positive = they are owed, negative = they owe).
-      // Wait, standard logic:
-      // Net Balance = Paid - Share of Cost.
-
-      // + CREDIT for Paying
-      // - DEBIT for Consuming (being in the split)
-
-      if (balances[paidBy] === undefined) balances[paidBy] = 0;
-      balances[paidBy] += amount;
-
+      // Each person who is in the split owes their share
       expense.splitBetween.forEach((memberId) => {
         if (balances[memberId] === undefined) balances[memberId] = 0;
-        balances[memberId] -= splitAmount;
+        balances[memberId] -= sharePerPerson;
       });
+
+      // The payer gets credit for paying the full amount
+      if (balances[paidBy] === undefined) balances[paidBy] = 0;
+      balances[paidBy] += amount;
     });
 
     return balances;
@@ -232,9 +225,13 @@ export const SplitBillProvider: React.FC<{ children: React.ReactNode }> = ({
     Object.entries(balances).forEach(([id, amount]) => {
       // Fix floating point precision
       const val = Math.round(amount * 100) / 100;
-      if (val < -0.01) debtors.push({ id, amount: -val });
+      if (val < -0.01) debtors.push({ id, amount: -val }); // Convert to positive
       if (val > 0.01) creditors.push({ id, amount: val });
     });
+
+    // Sort by amount (largest first) for better debt simplification
+    debtors.sort((a, b) => b.amount - a.amount);
+    creditors.sort((a, b) => b.amount - a.amount);
 
     let i = 0; // debtor index
     let j = 0; // creditor index
@@ -244,16 +241,24 @@ export const SplitBillProvider: React.FC<{ children: React.ReactNode }> = ({
       const creditor = creditors[j];
 
       // The amount to settle is the minimum of what debtor owes and creditor is owed
-      const amount = Math.min(debtor.amount, creditor.amount);
-      debts.push({ from: debtor.id, to: creditor.id, amount });
+      const settleAmount = Math.min(debtor.amount, creditor.amount);
+
+      // Only add debt if amount is significant (> 0.01)
+      if (settleAmount > 0.01) {
+        debts.push({
+          from: debtor.id,
+          to: creditor.id,
+          amount: Math.round(settleAmount * 100) / 100,
+        });
+      }
 
       // Update remaining amounts
-      debtor.amount -= amount;
-      creditor.amount -= amount;
+      debtor.amount -= settleAmount;
+      creditor.amount -= settleAmount;
 
-      // Move to next provided if settled (with small epsilon for float errors)
-      if (Math.abs(debtor.amount) < 0.01) i++;
-      if (Math.abs(creditor.amount) < 0.01) j++;
+      // Move to next if settled (with small epsilon for float errors)
+      if (debtor.amount < 0.01) i++;
+      if (creditor.amount < 0.01) j++;
     }
 
     return debts;
@@ -275,7 +280,7 @@ export const SplitBillProvider: React.FC<{ children: React.ReactNode }> = ({
     const updatedGroup = {
       ...updatedGroups[groupIndex],
       expenses: updatedGroups[groupIndex].expenses.filter(
-        (e) => e.id !== expenseId
+        (e) => e.id !== expenseId,
       ),
     };
     updatedGroups[groupIndex] = updatedGroup;
@@ -318,7 +323,7 @@ export const SplitBillProvider: React.FC<{ children: React.ReactNode }> = ({
     const updatedGroup = {
       ...updatedGroups[groupIndex],
       members: updatedGroups[groupIndex].members.filter(
-        (m) => m.id !== memberId
+        (m) => m.id !== memberId,
       ),
     };
     updatedGroups[groupIndex] = updatedGroup;

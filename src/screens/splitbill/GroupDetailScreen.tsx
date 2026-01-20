@@ -39,12 +39,12 @@ export default function GroupDetailScreen() {
   // Calculate Balances & Debts
   const balances = useMemo(
     () => (currentGroup ? getGroupBalances(currentGroup.id) : {}),
-    [currentGroup]
+    [currentGroup],
   );
 
   const allDebts = useMemo(
     () => (currentGroup ? getDebts(currentGroup.id) : []),
-    [currentGroup]
+    [currentGroup],
   );
 
   // "You" is hardcoded as 'user-me' in context for now
@@ -54,7 +54,7 @@ export default function GroupDetailScreen() {
   const youAreOwed = allDebts.filter((d) => d.to === "user-me");
   const youOwe = allDebts.filter((d) => d.from === "user-me");
   const otherDebts = allDebts.filter(
-    (d) => d.from !== "user-me" && d.to !== "user-me"
+    (d) => d.from !== "user-me" && d.to !== "user-me",
   );
 
   // Redirect if group not found (e.g. deleted)
@@ -100,7 +100,7 @@ export default function GroupDetailScreen() {
           style: "destructive",
           onPress: () => deleteExpense(currentGroup.id, expenseId),
         },
-      ]
+      ],
     );
   };
 
@@ -129,7 +129,7 @@ export default function GroupDetailScreen() {
           avatarColor="#F0FDF4"
           avatarTextColor="#15803D"
           amountColor="#10B981"
-          getDescription={() => "owes you"}
+          getDescription={() => "will pay you"}
         />
 
         <DebtSection
@@ -141,7 +141,7 @@ export default function GroupDetailScreen() {
           avatarColor="#FEF2F2"
           avatarTextColor="#B91C1C"
           amountColor="#EF4444"
-          getDescription={() => "you owe"}
+          getDescription={() => "you will pay"}
         />
 
         <DebtSection
@@ -155,7 +155,7 @@ export default function GroupDetailScreen() {
           amountColor={theme.colors.text.primary}
           getDescription={(debt, members) => {
             const toMember = members.find((m) => m.id === debt.to);
-            return `owes ${toMember?.name || "Unknown"}`;
+            return `will pay ${toMember?.name || "Unknown"}`;
           }}
         />
 
@@ -181,7 +181,7 @@ export default function GroupDetailScreen() {
         ) : (
           recentExpenses.map((expense) => {
             const payer = currentGroup.members.find(
-              (m) => m.id === expense.paidBy
+              (m) => m.id === expense.paidBy,
             );
             return (
               <ActivityItem

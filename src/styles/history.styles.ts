@@ -60,6 +60,8 @@ export const styles = StyleSheet.create({
     backgroundColor: theme.colors.surface,
     borderRadius: theme.borderRadius.xxl,
     padding: 20,
+    alignItems: "center",
+    width: 180,
     ...theme.shadows.medium,
     justifyContent: "center",
   },

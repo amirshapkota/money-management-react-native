@@ -10,17 +10,20 @@ export const GoalsHeader = () => {
 
   return (
     <View style={styles.header}>
-      <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+      <TouchableOpacity style={styles.iconButton} onPress={() => router.back()}>
         <Ionicons
           name="arrow-back"
           size={24}
           color={theme.colors.text.primary}
         />
       </TouchableOpacity>
-      <Text style={styles.headerTitle}>Savings Goals</Text>
-      <TouchableOpacity style={styles.menuButton}>
+      <View style={styles.headerTitleContainer}>
+        <Text style={styles.headerOverline}>OVERVIEW</Text>
+        <Text style={styles.headerTitle}>My Savings Goals</Text>
+      </View>
+      <TouchableOpacity style={styles.iconButton}>
         <Ionicons
-          name="ellipsis-vertical"
+          name="notifications-outline"
           size={24}
           color={theme.colors.text.primary}
         />

@@ -1,5 +1,6 @@
 import React from "react";
 import { View, Text, TouchableOpacity, Image } from "react-native";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { styles } from "@/styles/goal.styles";
 import { theme } from "@/constants/theme";
 
@@ -10,7 +11,7 @@ interface GoalCardProps {
   targetAmount: string;
   progress: number; // 0 to 1
   color: string;
-  icon?: any; // Component or Image Source
+  icon?: string; // Icon name for MaterialCommunityIcons
   onPress: () => void;
   onDeposit: () => void;
 }
@@ -34,18 +35,10 @@ export const GoalCard = ({
         <View
           style={[styles.goalIconContainer, { backgroundColor: color + "20" }]}
         >
-          {/* Using opacity of color for background */}
-          {/* If icon is a component, render it, else if it's an image source render Image */}
-          {/* For simplicity we'll assume it's passed as a React Node or we handle inside */}
-          {/* Placeholder for now */}
-          {/* We can use LinearGradient for icon bg if needed */}
-          <View
-            style={{
-              width: 40,
-              height: 40,
-              borderRadius: 12,
-              backgroundColor: color,
-            }}
+          <MaterialCommunityIcons
+            name={(icon || "star") as any}
+            size={24}
+            color={color}
           />
         </View>
         <View style={styles.goalInfo}>
@@ -84,8 +77,8 @@ export const GoalCard = ({
                   progress >= 1
                     ? theme.colors.status.success
                     : progress > 0.5
-                    ? theme.colors.status.success
-                    : theme.colors.status.warning,
+                      ? theme.colors.status.success
+                      : theme.colors.status.warning,
               },
             ]}
           />
@@ -93,8 +86,8 @@ export const GoalCard = ({
             {progress >= 1
               ? "Completed"
               : progress > 0.8
-              ? "Almost there!"
-              : "On track"}
+                ? "Almost there!"
+                : "On track"}
           </Text>
         </View>
 

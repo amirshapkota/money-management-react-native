@@ -288,6 +288,76 @@ export interface Database {
           completed_at?: string | null;
         };
       };
+      goal_contributions: {
+        Row: {
+          id: string;
+          goal_id: string;
+          amount: number;
+          contribution_date: string;
+          note: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          goal_id: string;
+          amount: number;
+          contribution_date: string;
+          note?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          goal_id?: string;
+          amount?: number;
+          contribution_date?: string;
+          note?: string | null;
+          created_at?: string;
+        };
+      };
+      uploaded_statements: {
+        Row: {
+          id: string;
+          user_id: string;
+          file_name: string;
+          file_type: string;
+          file_size: number;
+          file_path: string;
+          status: "pending" | "parsing" | "completed" | "failed";
+          transaction_count: number;
+          parsed_data: Json | null;
+          error_message: string | null;
+          uploaded_at: string;
+          parsed_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          file_name: string;
+          file_type: string;
+          file_size: number;
+          file_path: string;
+          status?: "pending" | "parsing" | "completed" | "failed";
+          transaction_count?: number;
+          parsed_data?: Json | null;
+          error_message?: string | null;
+          uploaded_at?: string;
+          parsed_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          file_name?: string;
+          file_type?: string;
+          file_size?: number;
+          file_path?: string;
+          status?: "pending" | "parsing" | "completed" | "failed";
+          transaction_count?: number;
+          parsed_data?: Json | null;
+          error_message?: string | null;
+          uploaded_at?: string;
+          parsed_at?: string | null;
+        };
+      };
       notifications: {
         Row: {
           id: string;

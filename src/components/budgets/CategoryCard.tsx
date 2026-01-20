@@ -1,6 +1,7 @@
 import React from "react";
 import { View, Text } from "react-native";
-import { FontAwesome5 } from "@expo/vector-icons";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import Svg, { Circle } from "react-native-svg";
 import { styles } from "@/styles/budget.styles";
 
 interface CategoryCardProps {
@@ -22,21 +23,54 @@ export const CategoryCard = ({
   color,
   warning,
 }: CategoryCardProps) => {
+  // Calculate progress percentage
+  const percentage = limit > 0 ? Math.min((amount / limit) * 100, 100) : 0;
+
+  // SVG circle properties
+  const size = 56;
+  const strokeWidth = 4;
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const strokeDashoffset = circumference - (percentage / 100) * circumference;
+
   return (
     <View style={styles.categoryCard}>
       <View style={styles.progressCircleContainer}>
         <View
           style={{
-            width: 56,
-            height: 56,
-            borderRadius: 28,
-            borderWidth: 4,
-            borderColor: color + "30",
+            width: size,
+            height: size,
             justifyContent: "center",
             alignItems: "center",
           }}
         >
-          <FontAwesome5 name={icon} size={20} color={color} />
+          {/* Background circle */}
+          <Svg width={size} height={size} style={{ position: "absolute" }}>
+            <Circle
+              cx={size / 2}
+              cy={size / 2}
+              r={radius}
+              stroke={color + "20"}
+              strokeWidth={strokeWidth}
+              fill="none"
+            />
+            {/* Progress circle */}
+            <Circle
+              cx={size / 2}
+              cy={size / 2}
+              r={radius}
+              stroke={color}
+              strokeWidth={strokeWidth}
+              fill="none"
+              strokeDasharray={circumference}
+              strokeDashoffset={strokeDashoffset}
+              strokeLinecap="round"
+              transform={`rotate(-90 ${size / 2} ${size / 2})`}
+            />
+          </Svg>
+
+          {/* Icon in center */}
+          <MaterialCommunityIcons name={icon as any} size={24} color={color} />
         </View>
       </View>
 

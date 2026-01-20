@@ -236,4 +236,44 @@ export const styles = StyleSheet.create({
     color: theme.colors.text.secondary,
     marginLeft: 8,
   },
+
+  // Empty State
+  emptyState: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 60,
+    paddingHorizontal: theme.spacing.xl,
+  },
+  emptyStateTitle: {
+    fontSize: 22,
+    fontWeight: "700",
+    color: theme.colors.text.primary,
+    marginTop: theme.spacing.l,
+    marginBottom: theme.spacing.s,
+    textAlign: "center",
+  },
+  emptyStateDescription: {
+    fontSize: 15,
+    color: theme.colors.text.secondary,
+    textAlign: "center",
+    lineHeight: 22,
+    marginBottom: theme.spacing.xl,
+  },
+  createBudgetButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: theme.colors.primary,
+    paddingVertical: 16,
+    paddingHorizontal: 32,
+    borderRadius: 12,
+    gap: 8,
+    minWidth: 200,
+    ...theme.shadows.medium,
+  },
+  createBudgetButtonText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#FFFFFF",
+  },
 });

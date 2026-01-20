@@ -49,9 +49,16 @@ export const DebtSection = ({
         </View>
       </View>
       {debts.map((debt, index) => {
-        const member = members.find(
-          (m) => m.id === (title === "You're Owed" ? debt.from : debt.to)
-        );
+        // For "You're Owed", show who owes you (the 'from' person)
+        // For "You Owe", show who you owe (the 'to' person)
+        // For "Group Debts", show who owes (the 'from' person)
+        const isYouAreOwed = title === "You're Owed";
+        const isYouOwe = title === "You Owe";
+        const isGroupDebts = title === "Group Debts";
+
+        const displayMemberId = isYouOwe ? debt.to : debt.from;
+        const member = members.find((m) => m.id === displayMemberId);
+
         return (
           <View key={index} style={styles.personCard}>
             <View

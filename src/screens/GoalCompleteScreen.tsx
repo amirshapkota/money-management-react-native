@@ -5,15 +5,58 @@ import {
   ScrollView,
   TouchableOpacity,
   StatusBar,
+  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Ionicons, FontAwesome5, MaterialIcons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import { styles } from "@/styles/goalComplete.styles";
 import { theme } from "@/constants/theme";
+import { useGoalById } from "@/hooks/useGoals";
 
 export default function GoalCompleteScreen() {
   const router = useRouter();
+  const { goalId } = useLocalSearchParams();
+  const { data: goal, isLoading } = useGoalById(goalId as string);
+
+  if (isLoading || !goal) {
+    return (
+      <View
+        style={[
+          styles.container,
+          { justifyContent: "center", alignItems: "center" },
+        ]}
+      >
+        <ActivityIndicator size="large" color={theme.colors.primary} />
+      </View>
+    );
+  }
+
+  // Parse icon from name
+  let displayName = goal.name;
+  let iconName = "star";
+  if (goal.name.startsWith("icon:")) {
+    const parts = goal.name.split("|");
+    if (parts.length === 2) {
+      iconName = parts[0].replace("icon:", "");
+      displayName = parts[1];
+    }
+  }
+
+  const goalColor = goal.color || "#6B7280";
+  const startDate = new Date(goal.created_at).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+  });
+  const completedDate = goal.completed_at
+    ? new Date(goal.completed_at).toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+      })
+    : new Date().toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+      });
 
   return (
     <View style={styles.container}>
@@ -46,40 +89,52 @@ export default function GoalCompleteScreen() {
             {/* Decorative particles/confetti can be added here with absolute positioning */}
             <View style={styles.trophyContainer}>
               <View style={styles.trophyCircle}>
-                <FontAwesome5 name="trophy" size={80} color="#F59E0B" />
+                <MaterialCommunityIcons
+                  name="trophy"
+                  size={80}
+                  color="#F59E0B"
+                />
               </View>
               <View style={styles.goalMetBadge}>
-                <FontAwesome5 name="star" size={14} color="#F59E0B" solid />
+                <MaterialCommunityIcons name="star" size={14} color="#F59E0B" />
                 <Text style={styles.goalMetText}>GOAL MET!</Text>
               </View>
             </View>
 
             <Text style={styles.congratsText}>Congratulations!</Text>
             <Text style={styles.congratsSubText}>
-              You've successfully reached your saving goal for the{" "}
-              <Text style={styles.highlightText}>New Laptop</Text>.
+              You've successfully reached your saving goal for{" "}
+              <Text style={styles.highlightText}>{displayName}</Text>.
             </Text>
           </View>
 
           {/* Summary Card */}
           <View style={styles.summaryCard}>
             <View style={styles.goalHeader}>
-              <View style={[styles.iconBox, { backgroundColor: "#DBEAFE" }]}>
-                <FontAwesome5 name="laptop" size={24} color="#3B82F6" />
+              <View
+                style={[styles.iconBox, { backgroundColor: goalColor + "20" }]}
+              >
+                <MaterialCommunityIcons
+                  name={iconName as any}
+                  size={24}
+                  color={goalColor}
+                />
               </View>
               <View style={styles.goalDetails}>
                 <Text style={styles.goalLabel}>GOAL NAME</Text>
-                <Text style={styles.goalTitle}>MacBook Pro</Text>
+                <Text style={styles.goalTitle}>{displayName}</Text>
               </View>
               <View style={styles.savedSection}>
                 <Text style={styles.goalLabel}>SAVED</Text>
-                <Text style={styles.savedAmount}>$1,500</Text>
+                <Text style={styles.savedAmount}>
+                  ${goal.target_amount.toFixed(0)}
+                </Text>
               </View>
             </View>
 
             <View style={styles.datesRow}>
-              <Text style={styles.dateLabel}>Started: Aug 15</Text>
-              <Text style={styles.dateLabel}>Completed: Oct 25</Text>
+              <Text style={styles.dateLabel}>Started: {startDate}</Text>
+              <Text style={styles.dateLabel}>Completed: {completedDate}</Text>
             </View>
 
             <View style={styles.successBar} />
@@ -116,32 +171,6 @@ export default function GoalCompleteScreen() {
                 />
               </TouchableOpacity>
             </View>
-          </View>
-
-          {/* Footer / Next Milestone */}
-          <View style={styles.footer}>
-            <View
-              style={{
-                flexDirection: "row",
-                justifyContent: "space-between",
-                alignItems: "baseline",
-              }}
-            >
-              <Text style={styles.nextMilestoneTitle}>Next Milestone</Text>
-              <Text style={styles.nextMilestoneSubtitle}>1 of 3 left</Text>
-            </View>
-
-            <TouchableOpacity style={styles.setNewGoalBtn}>
-              <Text style={styles.setNewGoalText}>Set New Goal</Text>
-              <Ionicons name="arrow-forward" size={20} color="#FFFFFF" />
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.backBtn}
-              onPress={() => router.push("/")}
-            >
-              <Text style={styles.backBtnText}>Back to Dashboard</Text>
-            </TouchableOpacity>
           </View>
         </ScrollView>
       </SafeAreaView>

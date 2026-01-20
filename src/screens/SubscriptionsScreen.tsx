@@ -1,19 +1,119 @@
 import React from "react";
-import { View, Text, ScrollView, TouchableOpacity } from "react-native";
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  ActivityIndicator,
+  Alert,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import {
-  Ionicons,
-  FontAwesome5,
-  MaterialCommunityIcons,
-} from "@expo/vector-icons";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { styles } from "@/styles/subscriptions.styles";
 import { theme } from "@/constants/theme";
 import { SubscriptionsHeader } from "@/components/subscriptions/SubscriptionsHeader";
 import { SubscriptionsSummaryCard } from "@/components/subscriptions/SubscriptionsSummaryCard";
+import {
+  useSubscriptions,
+  useUpcomingSubscriptions,
+  useDeleteSubscription,
+} from "@/hooks/useSubscriptions";
+
+const SUBSCRIPTION_ICONS: Record<
+  string,
+  { icon: any; color: string; bgColor: string }
+> = {
+  netflix: { icon: "netflix", color: "#FFFFFF", bgColor: "#E50914" },
+  spotify: { icon: "spotify", color: "#1DB954", bgColor: "#000000" },
+  adobe: { icon: "adobe-acrobat", color: "#FF0000", bgColor: "#000000" },
+  youtube: { icon: "youtube", color: "#FF0000", bgColor: "#FFFFFF" },
+  amazon: { icon: "shopping", color: "#FF9900", bgColor: "#232F3E" },
+  apple: { icon: "apple", color: "#FFFFFF", bgColor: "#000000" },
+  microsoft: { icon: "microsoft", color: "#00A4EF", bgColor: "#F3F4F6" },
+  google: { icon: "google", color: "#4285F4", bgColor: "#FFFFFF" },
+  discord: { icon: "message-text", color: "#5865F2", bgColor: "#FFFFFF" },
+  twitch: { icon: "twitch", color: "#9146FF", bgColor: "#FFFFFF" },
+  dropbox: { icon: "dropbox", color: "#0061FF", bgColor: "#FFFFFF" },
+  github: { icon: "github", color: "#FFFFFF", bgColor: "#181717" },
+  linkedin: { icon: "linkedin", color: "#0A66C2", bgColor: "#FFFFFF" },
+  slack: { icon: "slack", color: "#4A154B", bgColor: "#FFFFFF" },
+  notion: { icon: "notebook-outline", color: "#000000", bgColor: "#FFFFFF" },
+  evernote: { icon: "evernote", color: "#00A82D", bgColor: "#FFFFFF" },
+  chatgpt: { icon: "robot", color: "#10A37F", bgColor: "#FFFFFF" },
+  default: { icon: "apps", color: "#FFFFFF", bgColor: "#6B7280" },
+};
+
+// Parse icon from subscription name (format: "icon:iconName|actualName")
+const parseSubscriptionIcon = (name: string, color?: string | null) => {
+  if (name.startsWith("icon:")) {
+    const parts = name.split("|");
+    if (parts.length === 2) {
+      const iconName = parts[0].replace("icon:", "");
+      const displayName = parts[1];
+      return {
+        icon: iconName,
+        name: displayName,
+        color: color || "#6B7280",
+        bgColor: "#F3F4F6",
+      };
+    }
+  }
+
+  // Fallback to old icon detection for existing subscriptions
+  const lowerName = name.toLowerCase();
+  for (const [key, value] of Object.entries(SUBSCRIPTION_ICONS)) {
+    if (lowerName.includes(key)) {
+      return { ...value, name };
+    }
+  }
+  return { ...SUBSCRIPTION_ICONS.default, name };
+};
+
+const getSubscriptionIcon = (name: string, color?: string | null) => {
+  return parseSubscriptionIcon(name, color);
+};
+
+const getDaysUntil = (date: string) => {
+  const target = new Date(date);
+  const today = new Date();
+  const diffTime = target.getTime() - today.getTime();
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  return diffDays;
+};
 
 export default function SubscriptionsScreen() {
   const router = useRouter();
+  const { data: allSubscriptions, isLoading: loadingAll } = useSubscriptions();
+  const { data: upcomingSubscriptions, isLoading: loadingUpcoming } =
+    useUpcomingSubscriptions(7);
+  const deleteSubscription = useDeleteSubscription();
+
+  const activeSubscriptions =
+    allSubscriptions?.filter((sub) => sub.status === "active") || [];
+
+  const handleDelete = (id: string, name: string) => {
+    const iconConfig = getSubscriptionIcon(name);
+    Alert.alert(
+      "Delete Subscription",
+      `Are you sure you want to delete ${iconConfig.name}?`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await deleteSubscription.mutateAsync(id);
+              Alert.alert("Success", "Subscription deleted successfully");
+            } catch (error) {
+              Alert.alert("Error", "Failed to delete subscription");
+            }
+          },
+        },
+      ],
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -27,90 +127,123 @@ export default function SubscriptionsScreen() {
           <SubscriptionsSummaryCard />
 
           {/* Upcoming */}
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Upcoming</Text>
-            <View style={styles.actionBadge}>
-              <Text style={styles.actionText}>ACTION NEEDED</Text>
+          {loadingUpcoming ? (
+            <View style={{ padding: 32, alignItems: "center" }}>
+              <ActivityIndicator size="small" color={theme.colors.primary} />
             </View>
-          </View>
+          ) : upcomingSubscriptions && upcomingSubscriptions.length > 0 ? (
+            <>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Upcoming</Text>
+                {upcomingSubscriptions.some(
+                  (sub) => getDaysUntil(sub.next_billing_date) <= 1,
+                ) && (
+                  <View style={styles.actionBadge}>
+                    <Text style={styles.actionText}>ACTION NEEDED</Text>
+                  </View>
+                )}
+              </View>
 
-          {/* Upcoming Card */}
-          <View style={styles.upcomingCard}>
-            <View style={styles.upcomingRow}>
-              <View style={[styles.logo, { backgroundColor: "black" }]}>
-                <Text style={{ color: "red", fontWeight: "900", fontSize: 18 }}>
-                  N
-                </Text>
-              </View>
-              <View style={styles.subInfo}>
-                <Text style={styles.subName}>Netflix Premium</Text>
-                <Text style={styles.subCategory}>Entertainment</Text>
-              </View>
-              <View style={styles.subPriceBlock}>
-                <Text style={styles.priceText}>$15.99</Text>
-                <Text style={styles.periodText}>per month</Text>
-              </View>
-            </View>
+              {upcomingSubscriptions.map((subscription) => {
+                const daysUntil = getDaysUntil(subscription.next_billing_date);
+                const iconConfig = getSubscriptionIcon(
+                  subscription.name,
+                  subscription.color,
+                );
+                const isUrgent = daysUntil <= 1;
+                const progress = Math.max(
+                  0,
+                  Math.min(100, ((7 - daysUntil) / 7) * 100),
+                );
 
-            <View style={styles.alertBlock}>
-              <Ionicons name="time-outline" size={16} color="#F97316" />
-              <Text style={styles.alertText}>Renews Tomorrow</Text>
-              <View style={styles.progressBarBg}>
-                <View style={styles.progressBarFill} />
-              </View>
-            </View>
-          </View>
+                return (
+                  <View
+                    key={subscription.id}
+                    style={[
+                      styles.upcomingCard,
+                      { borderLeftColor: isUrgent ? "#F97316" : "#3B82F6" },
+                    ]}
+                  >
+                    <View style={styles.upcomingRow}>
+                      <View
+                        style={[
+                          styles.logo,
+                          {
+                            backgroundColor: iconConfig.bgColor,
+                          },
+                        ]}
+                      >
+                        <MaterialCommunityIcons
+                          name={iconConfig.icon as any}
+                          size={24}
+                          color={iconConfig.color}
+                        />
+                      </View>
+                      <View style={styles.subInfo}>
+                        <Text style={styles.subName}>{iconConfig.name}</Text>
+                        <Text style={styles.subCategory}>
+                          {subscription.category}
+                        </Text>
+                      </View>
+                      <View style={styles.subPriceBlock}>
+                        <Text style={styles.priceText}>
+                          ${subscription.amount.toFixed(2)}
+                        </Text>
+                        <Text style={styles.periodText}>
+                          per {subscription.billing_cycle}
+                        </Text>
+                      </View>
+                    </View>
 
-          <TouchableOpacity
-            style={[
-              styles.upcomingCard,
-              { borderLeftColor: "#3B82F6", marginBottom: theme.spacing.xl },
-            ]}
-            onPress={() => {}} // Could expand details
-          >
-            <View style={styles.upcomingRow}>
-              <View style={[styles.logo, { backgroundColor: "#0F172A" }]}>
-                <MaterialCommunityIcons
-                  name="drawing-box"
-                  size={24}
-                  color="#3B82F6"
-                />
-              </View>
-              <View style={styles.subInfo}>
-                <Text style={styles.subName}>Adobe Creative</Text>
-                <Text style={styles.subCategory}>Design Tools</Text>
-              </View>
-              <View style={styles.subPriceBlock}>
-                <Text style={styles.priceText}>$54.99</Text>
-                <Text style={styles.periodText}>per month</Text>
-              </View>
-            </View>
-
-            <View style={[styles.alertBlock, { backgroundColor: "#F8FAFC" }]}>
-              <Ionicons name="calendar-outline" size={16} color="#3B82F6" />
-              <Text
-                style={[
-                  styles.alertText,
-                  { color: theme.colors.text.primary, fontWeight: "500" },
-                ]}
-              >
-                In 3 days
-              </Text>
-              <View
-                style={[
-                  styles.progressBarBg,
-                  { backgroundColor: "#E2E8F0", width: 100 },
-                ]}
-              >
-                <View
-                  style={[
-                    styles.progressBarFill,
-                    { backgroundColor: "#3B82F6", width: "60%" },
-                  ]}
-                />
-              </View>
-            </View>
-          </TouchableOpacity>
+                    <View
+                      style={[
+                        styles.alertBlock,
+                        !isUrgent && { backgroundColor: "#F8FAFC" },
+                      ]}
+                    >
+                      <Ionicons
+                        name={isUrgent ? "time-outline" : "calendar-outline"}
+                        size={16}
+                        color={isUrgent ? "#F97316" : "#3B82F6"}
+                      />
+                      <Text
+                        style={[
+                          styles.alertText,
+                          !isUrgent && {
+                            color: theme.colors.text.primary,
+                            fontWeight: "500",
+                          },
+                        ]}
+                      >
+                        {daysUntil === 0
+                          ? "Renews Today"
+                          : daysUntil === 1
+                            ? "Renews Tomorrow"
+                            : `In ${daysUntil} days`}
+                      </Text>
+                      <View
+                        style={[
+                          styles.progressBarBg,
+                          !isUrgent && {
+                            backgroundColor: "#E2E8F0",
+                            width: 100,
+                          },
+                        ]}
+                      >
+                        <View
+                          style={[
+                            styles.progressBarFill,
+                            !isUrgent && { backgroundColor: "#3B82F6" },
+                            { width: `${progress}%` },
+                          ]}
+                        />
+                      </View>
+                    </View>
+                  </View>
+                );
+              })}
+            </>
+          ) : null}
 
           {/* Active List */}
           <View style={styles.sortRow}>
@@ -125,96 +258,94 @@ export default function SubscriptionsScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* List Item 1 */}
-          <View style={styles.subscriptionItem}>
-            <View style={[styles.logo, { backgroundColor: "#22C55E" }]}>
-              <FontAwesome5 name="spotify" size={24} color="#FFF" />
+          {loadingAll ? (
+            <View style={{ padding: 32, alignItems: "center" }}>
+              <ActivityIndicator size="small" color={theme.colors.primary} />
             </View>
-            <View style={styles.subInfo}>
-              <Text style={styles.subName}>Spotify Duo</Text>
-              <Text style={styles.subCategory}>Renews Oct 24</Text>
-            </View>
-            <View style={styles.subPriceBlock}>
-              <Text style={[styles.priceText, { fontSize: 14 }]}>$12.99</Text>
-              <View
-                style={[styles.statusBadge, { backgroundColor: "#DCFCE7" }]}
-              >
-                <Text style={[styles.statusText, { color: "#16A34A" }]}>
-                  Auto-pay
-                </Text>
-              </View>
-            </View>
-          </View>
+          ) : activeSubscriptions.length > 0 ? (
+            activeSubscriptions.map((subscription) => {
+              const daysUntil = getDaysUntil(subscription.next_billing_date);
+              const iconConfig = getSubscriptionIcon(
+                subscription.name,
+                subscription.color,
+              );
+              const isAutoPay = subscription.auto_pay;
 
-          {/* List Item 2 */}
-          <View style={styles.subscriptionItem}>
-            <View style={[styles.logo, { backgroundColor: "#3B82F6" }]}>
-              <FontAwesome5 name="dropbox" size={24} color="#FFF" />
+              return (
+                <View key={subscription.id} style={styles.subscriptionItem}>
+                  <View
+                    style={[
+                      styles.logo,
+                      {
+                        backgroundColor: iconConfig.bgColor,
+                      },
+                    ]}
+                  >
+                    <MaterialCommunityIcons
+                      name={iconConfig.icon as any}
+                      size={24}
+                      color={iconConfig.color}
+                    />
+                  </View>
+                  <View style={styles.subInfo}>
+                    <Text style={styles.subName}>{iconConfig.name}</Text>
+                    <Text style={styles.subCategory}>
+                      Renews{" "}
+                      {new Date(
+                        subscription.next_billing_date,
+                      ).toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                      })}
+                    </Text>
+                  </View>
+                  <View style={styles.subPriceBlock}>
+                    <Text style={[styles.priceText, { fontSize: 14 }]}>
+                      ${subscription.amount.toFixed(2)}
+                    </Text>
+                    {isAutoPay ? (
+                      <View
+                        style={[
+                          styles.statusBadge,
+                          { backgroundColor: "#DCFCE7" },
+                        ]}
+                      >
+                        <Text style={[styles.statusText, { color: "#16A34A" }]}>
+                          Auto-pay
+                        </Text>
+                      </View>
+                    ) : (
+                      <View style={styles.daysLeftBadge}>
+                        <Text style={styles.daysLeftText}>
+                          {daysUntil} days left
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                  <TouchableOpacity
+                    onPress={() =>
+                      handleDelete(subscription.id, subscription.name)
+                    }
+                    style={{
+                      padding: 8,
+                      marginLeft: 8,
+                    }}
+                  >
+                    <Ionicons name="trash-outline" size={20} color="#EF4444" />
+                  </TouchableOpacity>
+                </View>
+              );
+            })
+          ) : (
+            <View style={{ padding: 32, alignItems: "center" }}>
+              <Text style={{ color: theme.colors.text.secondary }}>
+                No active subscriptions
+              </Text>
             </View>
-            <View style={styles.subInfo}>
-              <Text style={styles.subName}>Dropbox Plus</Text>
-              <Text style={styles.subCategory}>Renews Nov 02</Text>
-            </View>
-            <View style={styles.subPriceBlock}>
-              <Text style={[styles.priceText, { fontSize: 14 }]}>$9.99</Text>
-              <View style={styles.daysLeftBadge}>
-                <Text style={styles.daysLeftText}>18 days left</Text>
-              </View>
-            </View>
-          </View>
-
-          {/* List Item 3 */}
-          <View style={styles.subscriptionItem}>
-            <View style={[styles.logo, { backgroundColor: "#10B981" }]}>
-              <FontAwesome5 name="robot" size={24} color="#FFF" />
-            </View>
-            <View style={styles.subInfo}>
-              <Text style={styles.subName}>ChatGPT Plus</Text>
-              <Text style={styles.subCategory}>Renews Nov 15</Text>
-            </View>
-            <View style={styles.subPriceBlock}>
-              <Text style={[styles.priceText, { fontSize: 14 }]}>$20.00</Text>
-              <View
-                style={[styles.daysLeftBadge, { backgroundColor: "#F1F5F9" }]}
-              >
-                <Text style={[styles.daysLeftText, { color: "#64748B" }]}>
-                  30 days left
-                </Text>
-              </View>
-            </View>
-          </View>
-
-          {/* List Item 4 */}
-          <View style={styles.subscriptionItem}>
-            <View
-              style={[
-                styles.logo,
-                {
-                  backgroundColor: "#FFF",
-                  borderWidth: 1,
-                  borderColor: "#E2E8F0",
-                },
-              ]}
-            >
-              <Text style={{ fontWeight: "bold", fontSize: 18 }}>N</Text>
-            </View>
-            <View style={styles.subInfo}>
-              <Text style={styles.subName}>Notion Personal</Text>
-              <Text style={styles.subCategory}>Renews Dec 01</Text>
-            </View>
-            <View style={styles.subPriceBlock}>
-              <Text style={[styles.priceText, { fontSize: 14 }]}>$4.00</Text>
-              <View
-                style={[styles.daysLeftBadge, { backgroundColor: "#F1F5F9" }]}
-              >
-                <Text style={[styles.daysLeftText, { color: "#64748B" }]}>
-                  45 days left
-                </Text>
-              </View>
-            </View>
-          </View>
+          )}
         </ScrollView>
-        {/* Floating Action Button - Moved outside ScrollView for correct placement */}
+
+        {/* Floating Action Button */}
         <TouchableOpacity
           style={{
             position: "absolute",

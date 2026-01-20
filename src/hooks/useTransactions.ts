@@ -24,7 +24,7 @@ export const useTransactions = (limit = 50) => {
  */
 export const useTransactionsByDateRange = (
   startDate: string,
-  endDate: string
+  endDate: string,
 ) => {
   const { user } = useAuth();
 
@@ -108,9 +108,32 @@ export const useCreateTransaction = () => {
         ...transaction,
         user_id: user!.id,
       }),
-    onSuccess: () => {
-      // Invalidate all transaction queries to refetch data
-      queryClient.invalidateQueries({ queryKey: ["transactions"] });
+    onSuccess: async (data, variables) => {
+      console.log(`[useCreateTransaction] Transaction created:`, data);
+      console.log(`[useCreateTransaction] Transaction data:`, variables);
+      console.log(
+        `[useCreateTransaction] Invalidating and refetching queries...`,
+      );
+
+      // Invalidate and refetch all queries
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: ["transactions"],
+          refetchType: "active",
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ["budgets"],
+          refetchType: "active",
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ["goals"],
+          refetchType: "active",
+        }),
+      ]);
+
+      console.log(
+        `[useCreateTransaction] All queries invalidated and refetched`,
+      );
     },
   });
 };

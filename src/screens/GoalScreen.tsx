@@ -6,6 +6,7 @@ import { styles } from "@/styles/goal.styles";
 import { GoalsHeader } from "@/components/goals/GoalsHeader";
 import { GoalsBalanceCard } from "@/components/goals/GoalsBalanceCard";
 import { GoalsList } from "@/components/goals/GoalsList";
+import { CompletedGoalsList } from "@/components/goals/CompletedGoalsList";
 import { theme } from "@/constants/theme";
 
 export default function GoalScreen() {
@@ -32,6 +33,7 @@ export default function GoalScreen() {
           <GoalsHeader />
           <GoalsBalanceCard />
           <GoalsList onGoalPress={handleGoalPress} />
+          <CompletedGoalsList />
         </ScrollView>
       </SafeAreaView>
     </View>

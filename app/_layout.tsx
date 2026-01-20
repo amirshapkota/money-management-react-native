@@ -1,6 +1,6 @@
 import React from "react";
 import { Stack, Slot } from "expo-router";
-import { AuthProvider, useAuth } from "@/context/AuthContext";
+import { AuthProvider, useAuth } from "@/context/SupabaseAuthContext";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { ActivityIndicator, View } from "react-native";
 import OnboardingScreen from "@/screens/OnboardingScreen";
@@ -20,13 +20,7 @@ const queryClient = new QueryClient({
 });
 
 const RootLayoutNav = () => {
-  const {
-    isAuthenticated,
-    isLoading,
-    hasSeenOnboarding,
-    login,
-    completeOnboarding,
-  } = useAuth();
+  const { user, isLoading, hasSeenOnboarding, completeOnboarding } = useAuth();
 
   if (isLoading) {
     return (
@@ -40,12 +34,34 @@ const RootLayoutNav = () => {
     return <OnboardingScreen onComplete={completeOnboarding} />;
   }
 
-  if (!isAuthenticated) {
-    return <AuthScreen onAuthSuccess={login} />;
+  if (!user) {
+    return <AuthScreen />;
   }
 
-  // Authenticated: Render the Slot which will load app/(tabs)
-  return <Stack screenOptions={{ headerShown: false }} />;
+  // Authenticated: Render the Stack which will load app/(tabs)
+  return (
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack.Screen
+        name="add-transaction"
+        options={{ presentation: "modal" }}
+      />
+      <Stack.Screen
+        name="add-subscription"
+        options={{ presentation: "modal" }}
+      />
+      <Stack.Screen name="add-goal" options={{ presentation: "modal" }} />
+      <Stack.Screen name="budget" />
+      <Stack.Screen name="goal" />
+      <Stack.Screen name="goal-complete" />
+      <Stack.Screen name="subscriptions" />
+      <Stack.Screen name="reports" />
+      <Stack.Screen name="search" />
+      <Stack.Screen name="notifications" />
+      <Stack.Screen name="upload-statement" />
+      <Stack.Screen name="splitbill" />
+    </Stack>
+  );
 };
 
 export default function RootLayout() {

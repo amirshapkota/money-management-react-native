@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, Text, ScrollView, TouchableOpacity } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { styles } from "@/styles/settings.styles";
@@ -10,13 +10,32 @@ import { SettingItem } from "@/components/settings/SettingItem";
 import { ThemeSelector } from "@/components/settings/ThemeSelector";
 import { CurrencySelector } from "@/components/settings/CurrencySelector";
 import { ToggleSettingItem } from "@/components/settings/ToggleSettingItem";
+import { useAuth } from "@/context/SupabaseAuthContext";
 
 export default function SettingsScreen() {
+  const { signOut } = useAuth();
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [faceIdEnabled, setFaceIdEnabled] = useState(false);
   const [currentTheme, setCurrentTheme] = useState<"light" | "dark" | "system">(
     "light"
   );
+
+  const handleLogout = () => {
+    Alert.alert("Log Out", "Are you sure you want to log out?", [
+      {
+        text: "Cancel",
+        style: "cancel",
+      },
+      {
+        text: "Log Out",
+        style: "destructive",
+        onPress: async () => {
+          await signOut();
+          // The app will automatically redirect to auth screen
+        },
+      },
+    ]);
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -67,7 +86,7 @@ export default function SettingsScreen() {
         </SettingsSection>
 
         {/* Logout */}
-        <TouchableOpacity style={styles.logoutButton}>
+        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
           <Ionicons name="log-out-outline" size={20} color="#EF4444" />
           <Text style={styles.logoutText}>Log Out</Text>
         </TouchableOpacity>

@@ -9,17 +9,16 @@ import {
   ScrollView,
   Animated,
   Image,
+  Alert,
 } from "react-native";
 import { styles } from "@/styles/auth.styles";
 import { GoogleIcon } from "@/assets";
-
-interface AuthScreenProps {
-  onAuthSuccess: () => void;
-}
+import { useAuth } from "@/context/SupabaseAuthContext";
 
 type AuthMode = "login" | "signup";
 
-const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthSuccess }) => {
+const AuthScreen: React.FC = () => {
+  const { signUp, signIn, signInWithGoogle } = useAuth();
   const [authMode, setAuthMode] = useState<AuthMode>("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -54,11 +53,47 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthSuccess }) => {
   const handleAuth = async () => {
     setIsLoading(true);
 
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      if (authMode === "signup") {
+        // Validate fields
+        if (!fullName.trim()) {
+          Alert.alert("Error", "Please enter your full name");
+          setIsLoading(false);
+          return;
+        }
+        if (password !== confirmPassword) {
+          Alert.alert("Error", "Passwords do not match");
+          setIsLoading(false);
+          return;
+        }
+        if (password.length < 6) {
+          Alert.alert("Error", "Password must be at least 6 characters");
+          setIsLoading(false);
+          return;
+        }
+
+        await signUp(email, password, fullName);
+        Alert.alert(
+          "Success",
+          "Account created! Please check your email to verify your account.",
+          [{ text: "OK" }]
+        );
+      } else {
+        await signIn(email, password);
+      }
+    } catch (error: any) {
+      Alert.alert("Error", error.message || "Authentication failed");
+    } finally {
       setIsLoading(false);
-      onAuthSuccess();
-    }, 1500);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    try {
+      await signInWithGoogle();
+    } catch (error: any) {
+      Alert.alert("Error", error.message || "Google sign-in failed");
+    }
   };
 
   const isSignupMode = authMode === "signup";
@@ -209,7 +244,10 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthSuccess }) => {
 
           {/* Social Buttons */}
           <View style={styles.socialContainer}>
-            <TouchableOpacity style={styles.googleButton}>
+            <TouchableOpacity
+              style={styles.googleButton}
+              onPress={handleGoogleSignIn}
+            >
               <Image source={GoogleIcon} style={styles.googleIcon} />
               <Text style={styles.googleText}>Sign in with Google</Text>
             </TouchableOpacity>

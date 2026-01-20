@@ -7,6 +7,7 @@ import {
   TextInput,
   KeyboardAvoidingView,
   Platform,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -16,18 +17,39 @@ import { styles } from "@/styles/addTransaction.styles";
 import { TransactionTypeToggle } from "@/components/add-transaction/TransactionTypeToggle";
 import { AmountInput } from "@/components/add-transaction/AmountInput";
 import { CategorySelector } from "@/components/add-transaction/CategorySelector";
+import { useCreateTransaction } from "@/hooks/useTransactions";
 
 export default function AddTransactionScreen() {
   const router = useRouter();
+  const createTransaction = useCreateTransaction();
+
   const [type, setType] = useState<"expense" | "income">("expense");
   const [amount, setAmount] = useState("");
   const [category, setCategory] = useState("Food & Drink"); // Default for now
-  const [date, setDate] = useState("10/27/2023");
+  const [date, setDate] = useState(new Date().toISOString().split("T")[0]); // ISO format
   const [note, setNote] = useState("");
 
-  const handleSave = () => {
-    // Add save logic here
-    router.back();
+  const handleSave = async () => {
+    if (!amount || parseFloat(amount) <= 0) {
+      Alert.alert("Error", "Please enter a valid amount");
+      return;
+    }
+
+    try {
+      await createTransaction.mutateAsync({
+        type,
+        amount: parseFloat(amount),
+        category,
+        transaction_date: date,
+        description: note || null,
+        currency: "USD",
+      });
+
+      Alert.alert("Success", "Transaction saved successfully");
+      router.back();
+    } catch (error: any) {
+      Alert.alert("Error", error.message || "Failed to save transaction");
+    }
   };
 
   return (
@@ -88,8 +110,17 @@ export default function AddTransactionScreen() {
           </View>
         </ScrollView>
 
-        <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-          <Text style={styles.saveButtonText}>Save Transaction</Text>
+        <TouchableOpacity
+          style={[
+            styles.saveButton,
+            createTransaction.isPending && { opacity: 0.6 },
+          ]}
+          onPress={handleSave}
+          disabled={createTransaction.isPending}
+        >
+          <Text style={styles.saveButtonText}>
+            {createTransaction.isPending ? "Saving..." : "Save Transaction"}
+          </Text>
           <Feather name="check-circle" size={20} color="#FFFFFF" />
         </TouchableOpacity>
       </KeyboardAvoidingView>
